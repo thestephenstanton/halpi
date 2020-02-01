@@ -8,8 +8,6 @@ import (
 
 // Newf creates a NoType hapiError with formatted message
 func Newf(format string, args ...interface{}) error {
-	fmt.Println("creating newf error")
-
 	return hapiError{
 		errorType: NoType,
 		err:       fmt.Errorf(format, args...),
@@ -18,10 +16,9 @@ func Newf(format string, args ...interface{}) error {
 
 // New creates a NoType hapiError
 func New(msg string) error {
-	fmt.Println("creating new error")
 	return hapiError{
 		errorType: NoType,
-		err:       Newf(msg),
+		err:       errors.New(msg),
 	}
 }
 
@@ -29,13 +26,7 @@ func New(msg string) error {
 func Wrapf(err error, format string, args ...interface{}) error {
 	wrappedError := errors.Wrapf(err, format, args...)
 
-	hapiErr, ok := castToHapiError(err)
-	if !ok {
-		return hapiError{
-			errorType: NoType,
-			err:       wrappedError,
-		}
-	}
+	hapiErr := castToHapiError(err)
 
 	return hapiError{
 		errorType: hapiErr.errorType,
