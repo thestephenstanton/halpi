@@ -8,15 +8,8 @@ import (
 )
 
 func compareErrors(t *testing.T, expectedErr error, actualErr error) {
-	expected, ok := castToHapiError(expectedErr)
-	if !ok {
-		t.Fail()
-	}
-
-	actual, ok := castToHapiError(actualErr)
-	if !ok {
-		t.Fail()
-	}
+	expected := castToHapiError(expectedErr)
+	actual := castToHapiError(actualErr)
 
 	assert.Equal(t, expected.Error(), actual.Error())
 	assert.Equal(t, expected.errorType, actual.errorType)
