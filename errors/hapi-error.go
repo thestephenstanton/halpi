@@ -21,25 +21,24 @@ func (hapiError hapiError) GetMessage() string {
 
 // SetMessage will set the message of a hapiError
 // so that the envelope can be properly set when returning a response
-// if err is not of type hapiError. Returns the error with the
-// message set and a bool if it was set or not. Bool will be false
-// if the error passed in is not of type hapiError
-func SetMessage(err error, message string) (error, bool) {
-	hapiError, ok := castToHapiError(err)
-	if !ok {
-		return err, false
-	}
+// if err is not of type hapiError. If the error passed in is not a hapi
+// error, it will be converted to a NoType hapi error and have the message set
+func SetMessage(err error, message string) error {
+	hapiError := castToHapiError(err)
 
 	hapiError.message = message
 
-	return hapiError, true
+	return hapiError
 }
 
-func castToHapiError(err error) (hapiError, bool) {
+func castToHapiError(err error) hapiError {
 	customErr, ok := err.(hapiError)
 	if !ok {
-		return hapiError{}, false
+		return hapiError{
+			errorType: NoType,
+			err:       err,
+		}
 	}
 
-	return customErr, true
+	return customErr
 }

@@ -3,7 +3,7 @@ package errors
 import (
 	"testing"
 
-	"github.com/pkg/errors"
+	goerrors "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,21 +16,21 @@ func TestError(t *testing.T) {
 		{
 			desc: "Standard error",
 			hapiErr: hapiError{
-				err: errors.New("some standard error"),
+				err: goerrors.New("some standard error"),
 			},
 			expected: "some standard error",
 		},
 		{
 			desc: "Wrapped error",
 			hapiErr: hapiError{
-				err: errors.Wrap(errors.New("some standard error"), "wrapped error"),
+				err: goerrors.Wrap(goerrors.New("some standard error"), "wrapped error"),
 			},
 			expected: "wrapped error: some standard error",
 		},
 		{
 			desc: "Empty error",
 			hapiErr: hapiError{
-				err: errors.New(""),
+				err: goerrors.New(""),
 			},
 			expected: "",
 		},
@@ -44,7 +44,7 @@ func TestError(t *testing.T) {
 	}
 }
 
-func TestSetMessageAndDetail(t *testing.T) {
+func TestSetMessage(t *testing.T) {
 	// This is needed because we need the same error message to be persisted in the tests
 	daRealErr := New("this dumbass user is trying to access somewhere he shouldn't!!!")
 
@@ -52,15 +52,13 @@ func TestSetMessageAndDetail(t *testing.T) {
 		desc     string
 		message  string
 		err      error
-		expected error
+		expected string
 	}{
 		{
-			desc:    "Standard display message",
-			message: "stephen is the GOAT",
-			err:     hapiError{},
-			expected: hapiError{
-				message: "stephen is the GOAT",
-			},
+			desc:     "Standard display message",
+			message:  "stephen is the GOAT",
+			err:      hapiError{},
+			expected: "stephen is the GOAT",
 		},
 		{
 			desc:    "Make sure nothing else in hapiError changes",
@@ -69,21 +67,22 @@ func TestSetMessageAndDetail(t *testing.T) {
 				errorType: Unauthorized,
 				err:       daRealErr,
 			},
-			expected: hapiError{
-				errorType: Unauthorized,
-				err:       daRealErr,
-				message:   "You don't have permission to do that!",
-			},
+			expected: "You don't have permission to do that!",
+		},
+		{
+			desc:     "Get regular error and return back a hapi error with message set",
+			message:  "You don't have permission to do that!",
+			err:      goerrors.New("some regular error"),
+			expected: "You don't have permission to do that!",
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			actual, ok := SetMessage(tc.err, tc.message)
-			if !ok {
-				assert.Fail(t, "SetDisplayMessage failed, error is not of type hapiError")
-			}
+			err := SetMessage(tc.err, tc.message)
 
-			assert.Equal(t, tc.expected, actual)
+			actualErr := castToHapiError(err)
+
+			assert.Equal(t, tc.expected, actualErr.GetMessage())
 		})
 	}
 }
@@ -94,33 +93,32 @@ func TestCastToHapiError(t *testing.T) {
 		err: New("I heard you like playstation 2s..."),
 	}
 
+	standardLibraryErr := goerrors.New("not our a hapiError, just the boring golang one, but we will fix")
+
 	testCases := []struct {
 		desc              string
 		err               error
 		expectedHapiError hapiError
-		expectedOk        bool
 	}{
 		{
-			desc:              "Successful cast",
+			desc:              "Hapi error, happy cast",
 			err:               westCoastHapiError,
 			expectedHapiError: westCoastHapiError,
-			expectedOk:        true,
 		},
 		{
-			desc:       "Unsuccessful cast",
-			err:        errors.New("not our a hapiError, just the boring golang one"),
-			expectedOk: false,
+			desc: "Not hapi error, cast to a hapi error",
+			err:  standardLibraryErr,
+			expectedHapiError: hapiError{
+				errorType: NoType,
+				err:       standardLibraryErr,
+			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			actualHapiErr, actualOk := castToHapiError(tc.err)
+			actualHapiErr := castToHapiError(tc.err)
 
-			assert.Equal(t, tc.expectedOk, actualOk)
-
-			if actualOk {
-				assert.Equal(t, tc.expectedHapiError, actualHapiErr)
-			}
+			assert.Equal(t, tc.expectedHapiError, actualHapiErr)
 		})
 	}
 }
