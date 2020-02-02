@@ -11,7 +11,7 @@ type ErrorType uint
 
 const (
 	// NoType error
-	NoType ErrorType = iota
+	NoType ErrorType = iota + 1
 
 	// BadRequest 400 error
 	BadRequest
