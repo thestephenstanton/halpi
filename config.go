@@ -1,8 +1,8 @@
 package hapi
 
-// Config configs the hapi
+// Config configs hapi
 var Config = struct {
-	UseHapiReponseEnvelope bool
+	UseHapiEnvelopes bool
 }{
-	UseHapiReponseEnvelope: true,
+	UseHapiEnvelopes: true,
 }
