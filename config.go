@@ -4,5 +4,5 @@ package hapi
 var Config = struct {
 	UseHapiEnvelopes bool
 }{
-	UseHapiEnvelopes: true,
+	UseHapiEnvelopes: false,
 }
