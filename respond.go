@@ -7,8 +7,7 @@ import (
 	"github.com/thestephenstanton/hapi/errors"
 )
 
-// Respond will return a json marshaled to the client. Error will only return
-// if payload was not able to be marshaled
+// Respond will marshal and return the payload to the client with a given status code.
 func Respond(w http.ResponseWriter, statusCode int, payload interface{}) error {
 	if Config.UseHapiEnvelopes {
 		payload = NewResponseEnvelope(statusCode, payload)
@@ -35,6 +34,7 @@ func respond(w http.ResponseWriter, statusCode int, payload interface{}) error {
 	return nil
 }
 
+// RespondError will marshal and return the error payload to the client with a given status code.
 func RespondError(w http.ResponseWriter, statusCode int, payload interface{}) error {
 	// Check if it is a hapi error
 	hapiErr, ok := payload.(hapiError)
@@ -68,37 +68,37 @@ func RespondError(w http.ResponseWriter, statusCode int, payload interface{}) er
 	return respond(w, statusCode, payload)
 }
 
-// 200
+// RespondOK will marshal the payload and respond with a 200 status code.
 func RespondOK(w http.ResponseWriter, payload interface{}) error {
 	return Respond(w, http.StatusOK, payload)
 }
 
-// 400
+// RespondBadRequest will marshal the error payload and respond with a 400 status code.
 func RespondBadRequest(w http.ResponseWriter, payload interface{}) error {
 	return Respond(w, http.StatusBadRequest, payload)
 }
 
-// 401
+// RespondUnauthorized will marshal the error payload and respond with a 401 status code.
 func RespondUnauthorized(w http.ResponseWriter, payload interface{}) error {
 	return Respond(w, http.StatusUnauthorized, payload)
 }
 
-// 403
+// RespondForbidden will marshal the error payload and respond with a 403 status code.
 func RespondForbidden(w http.ResponseWriter, payload interface{}) error {
 	return Respond(w, http.StatusForbidden, payload)
 }
 
-// 404
+// RespondNotFound will marshal the error payload and respond with a 404 status code.
 func RespondNotFound(w http.ResponseWriter, payload interface{}) error {
 	return Respond(w, http.StatusNotFound, payload)
 }
 
-// 418
+// RespondTeapot will marshal the error payload and respond with a 418 status code.
 func RespondTeapot(w http.ResponseWriter, payload interface{}) error {
 	return Respond(w, http.StatusTeapot, payload)
 }
 
-// 500
+// RespondInternalError will marshal the error payload and respond with a 500 status code.
 func RespondInternalError(w http.ResponseWriter, payload interface{}) error {
 	return Respond(w, http.StatusInternalServerError, payload)
 }
