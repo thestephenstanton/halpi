@@ -34,31 +34,39 @@ const (
 
 // Newf creates a new hapiError with formatted message
 func (errorType ErrorType) Newf(message string, args ...interface{}) error {
-	return hapiError{
-		errorType: errorType,
-		err:       errors.Errorf(message, args...),
+	return HapiError{
+		ErrorType: errorType,
+		Err:       errors.Errorf(message, args...),
 	}
 }
 
 // New creates a new hapiError
 func (errorType ErrorType) New(message string) error {
-	return hapiError{
-		errorType: errorType,
-		err:       errorType.Newf(message),
+	return HapiError{
+		ErrorType: errorType,
+		Err:       errorType.Newf(message),
 	}
 }
 
 // Wrapf creates a new wrapped hapiError with formatted message
 func (errorType ErrorType) Wrapf(err error, message string, args ...interface{}) error {
-	return hapiError{
-		errorType: errorType,
-		err:       errors.Wrapf(err, message, args...),
+	return HapiError{
+		ErrorType: errorType,
+		Err:       errors.Wrapf(err, message, args...),
 	}
 }
 
 // Wrap creates a new wrapped hapiError
 func (errorType ErrorType) Wrap(err error, message string) error {
 	return errorType.Wrapf(err, message)
+}
+
+// Cast takes an error and turns it into a hapiError
+func (errorType ErrorType) Cast(err error) error {
+	return HapiError{
+		ErrorType: errorType,
+		Err:       err,
+	}
 }
 
 func getStatusCode(errorType ErrorType) int {

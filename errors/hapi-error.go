@@ -1,44 +1,54 @@
 package errors
 
-type hapiError struct {
-	err       error
-	errorType ErrorType
-	message   string
+// HapiError is a custom error that helps deliver status codes from deeper in
+// code to your application layer
+type HapiError struct {
+	Err       error
+	ErrorType ErrorType
+	Message   string
 }
 
-// Error returns the message of a hapiError
-func (hapiError hapiError) Error() string {
-	return hapiError.err.Error()
+// Error returns the error string of a HapiError.
+func (hapiErr HapiError) Error() string {
+	return hapiErr.Err.Error()
 }
 
-func (hapiError hapiError) GetStatusCode() int {
-	return getStatusCode(hapiError.errorType)
+// GetStatusCode gets the status code for the HapiError.
+func (hapiErr HapiError) GetStatusCode() int {
+	return getStatusCode(hapiErr.ErrorType)
 }
 
-func (hapiError hapiError) GetMessage() string {
-	return hapiError.message
+// GetMessage gets the Message of the HapiError.
+func (hapiErr HapiError) GetMessage() string {
+	return hapiErr.Message
 }
 
-// SetMessage will set the message of a hapiError
-// so that the envelope can be properly set when returning a response
-// if err is not of type hapiError. If the error passed in is not a hapi
-// error, it will be converted to a NoType hapi error and have the message set
+// SetMessage will set the Message of a HapiError so that you
+// can return a detailed message for the client when responding.
+// If err is not of type HapiError, it will be converted to a NoType
+// HapiError and have the message set.
 func SetMessage(err error, message string) error {
 	hapiError := castToHapiError(err)
 
-	hapiError.message = message
+	hapiError.Message = message
 
 	return hapiError
 }
 
-func castToHapiError(err error) hapiError {
-	customErr, ok := err.(hapiError)
+// Cast turns normal error into HapiError. If already a HapiError, this
+// will have no effect. If it is not, then this will return a NoType HapiError.
+func Cast(err error) error {
+	return castToHapiError(err)
+}
+
+func castToHapiError(err error) HapiError {
+	hapiErr, ok := err.(HapiError)
 	if !ok {
-		return hapiError{
-			errorType: NoType,
-			err:       err,
+		return HapiError{
+			ErrorType: NoType,
+			Err:       err,
 		}
 	}
 
-	return customErr
+	return hapiErr
 }

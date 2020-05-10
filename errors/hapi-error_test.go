@@ -10,27 +10,27 @@ import (
 func TestError(t *testing.T) {
 	testCases := []struct {
 		desc     string
-		hapiErr  hapiError
+		hapiErr  HapiError
 		expected string
 	}{
 		{
 			desc: "Standard error",
-			hapiErr: hapiError{
-				err: goerrors.New("some standard error"),
+			hapiErr: HapiError{
+				Err: goerrors.New("some standard error"),
 			},
 			expected: "some standard error",
 		},
 		{
 			desc: "Wrapped error",
-			hapiErr: hapiError{
-				err: goerrors.Wrap(goerrors.New("some standard error"), "wrapped error"),
+			hapiErr: HapiError{
+				Err: goerrors.Wrap(goerrors.New("some standard error"), "wrapped error"),
 			},
 			expected: "wrapped error: some standard error",
 		},
 		{
 			desc: "Empty error",
-			hapiErr: hapiError{
-				err: goerrors.New(""),
+			hapiErr: HapiError{
+				Err: goerrors.New(""),
 			},
 			expected: "",
 		},
@@ -57,15 +57,15 @@ func TestSetMessage(t *testing.T) {
 		{
 			desc:     "Standard display message",
 			message:  "stephen is the GOAT",
-			err:      hapiError{},
+			err:      HapiError{},
 			expected: "stephen is the GOAT",
 		},
 		{
-			desc:    "Make sure nothing else in hapiError changes",
+			desc:    "Make sure nothing else in HapiError changes",
 			message: "You don't have permission to do that!",
-			err: hapiError{
-				errorType: Unauthorized,
-				err:       daRealErr,
+			err: HapiError{
+				ErrorType: Unauthorized,
+				Err:       daRealErr,
 			},
 			expected: "You don't have permission to do that!",
 		},
@@ -87,18 +87,18 @@ func TestSetMessage(t *testing.T) {
 	}
 }
 
-func TestCastToHapiError(t *testing.T) {
+func TestCast(t *testing.T) {
 	// Same reason as the previous test
-	westCoastHapiError := hapiError{
-		err: New("I heard you like playstation 2s..."),
+	westCoastHapiError := HapiError{
+		Err: New("I heard you like playstation 2s..."),
 	}
 
-	standardLibraryErr := goerrors.New("not our a hapiError, just the boring golang one, but we will fix")
+	standardLibraryErr := goerrors.New("not our a HapiError, just the boring golang one, but we will fix")
 
 	testCases := []struct {
 		desc              string
 		err               error
-		expectedHapiError hapiError
+		expectedHapiError HapiError
 	}{
 		{
 			desc:              "Hapi error, happy cast",
@@ -108,15 +108,15 @@ func TestCastToHapiError(t *testing.T) {
 		{
 			desc: "Not hapi error, cast to a hapi error",
 			err:  standardLibraryErr,
-			expectedHapiError: hapiError{
-				errorType: NoType,
-				err:       standardLibraryErr,
+			expectedHapiError: HapiError{
+				ErrorType: NoType,
+				Err:       standardLibraryErr,
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			actualHapiErr := castToHapiError(tc.err)
+			actualHapiErr := Cast(tc.err)
 
 			assert.Equal(t, tc.expectedHapiError, actualHapiErr)
 		})
