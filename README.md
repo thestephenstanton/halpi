@@ -1,4 +1,5 @@
 # hapi
-Helps do standard shit that should be in standard go library
 
-Right now just does some convenient json responses
+hapi stands for helpful api
+
+it helps with http apis that return json
