@@ -1,8 +1,14 @@
 package hapi
 
+import "net/http"
+
 // Config configs hapi
 var Config = struct {
-	UseHapiEnvelopes bool
+	DefaultErrorMessage string
+	DefaultStatusCode   int
+	ReturnRawError      bool
 }{
-	UseHapiEnvelopes: false,
+	DefaultErrorMessage: "uh oh, something went wrong, please try again later",
+	DefaultStatusCode:   http.StatusInternalServerError,
+	ReturnRawError:      false,
 }

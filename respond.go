@@ -7,24 +7,22 @@ import (
 	"github.com/thestephenstanton/hapi/errors"
 )
 
-// Respond will marshal and return the payload to the client with a given status code.
-func Respond(w http.ResponseWriter, statusCode int, payload interface{}) error {
-	if Config.UseHapiEnvelopes {
-		payload = NewResponseEnvelope(statusCode, payload)
-	}
-
-	return respond(w, statusCode, payload)
+type hapiError interface {
+	error
+	GetStatusCode() int
+	GetMessage() string
 }
 
-func respond(w http.ResponseWriter, statusCode int, payload interface{}) error {
-	var bytes []byte
-	var err error
+type errorResponse struct {
+	Error    string `json:"error"`
+	RawError string `json:"rawError,omitempty"`
+}
 
-	if payload != nil {
-		bytes, err = json.Marshal(payload)
-		if err != nil {
-			return errors.InternalServerError.Wrap(err, "failed to marshal payload")
-		}
+// Respond will marshal and return the payload to the client with a given status code.
+func Respond(w http.ResponseWriter, statusCode int, payload interface{}) error {
+	bytes, err := json.Marshal(payload)
+	if err != nil {
+		return errors.InternalServerError.Wrap(err, "failed to marshal payload")
 	}
 
 	w.Header().Set("Content-Type", "application-json")
@@ -34,38 +32,39 @@ func respond(w http.ResponseWriter, statusCode int, payload interface{}) error {
 	return nil
 }
 
-// RespondError will marshal and return the error payload to the client with a given status code.
-func RespondError(w http.ResponseWriter, statusCode int, payload interface{}) error {
-	// Check if it is a hapi error
-	hapiErr, ok := payload.(hapiError)
+// RespondError will find if the error is a hapiError and if it is, get the message and set it to the error in the response. If err is not a hapiError
+// then the default error message and default
+func RespondError(w http.ResponseWriter, err error) error {
+	return RespondErrorFallback(w, err, Config.DefaultStatusCode)
+}
+
+// RespondErrorFallback check if err is a type of hapiError. If it isn't, it will fallback
+// to whatever status code you pass in.
+func RespondErrorFallback(w http.ResponseWriter, err error, fallbackStatusCode int) error {
+	statusCode := fallbackStatusCode
+	message := Config.DefaultErrorMessage
+
+	// check if err is hapi error
+	hapiErr, ok := err.(hapiError)
 	if ok {
-		if Config.UseHapiEnvelopes {
-			payload = NewErrorEnvelope(statusCode, hapiErr.(error))
-		} else {
-			payload = hapiErr.GetMessage()
-		}
-
-		return respond(w, hapiErr.GetStatusCode(), payload)
+		statusCode = hapiErr.GetStatusCode()
+		message = hapiErr.GetMessage()
 	}
 
-	// Check if just normal error
-	regularErr, ok := payload.(error)
-	if ok {
-		if Config.UseHapiEnvelopes {
-			payload = NewErrorEnvelope(statusCode, regularErr)
-		} else {
-			payload = regularErr.Error()
-		}
-
-		return respond(w, statusCode, payload)
+	// if the message is still empty, get the default http status code message
+	if message == "" {
+		message = http.StatusText(statusCode)
 	}
 
-	// Otherwise, send the payload
-	if Config.UseHapiEnvelopes {
-		payload = NewErrorEnvelope(statusCode, payload)
+	errorResponse := errorResponse{
+		Error: message,
 	}
 
-	return respond(w, statusCode, payload)
+	if Config.ReturnRawError {
+		errorResponse.RawError = err.Error()
+	}
+
+	return Respond(w, statusCode, errorResponse)
 }
 
 // RespondOK will marshal the payload and respond with a 200 status code.
