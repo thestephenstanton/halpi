@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ## Go from this...
 
 ```go
@@ -65,10 +64,3 @@ func (h handler) GetUsernameByID(w http.ResponseWriter, r *http.Request) {
 ```
 
 // Under construction...
-=======
-# hapi
-
-hapi stands for helpful api
-
-it helps with http apis that return json
->>>>>>> c62368c612979b0c3a36aae3b6dd30e586c98805
