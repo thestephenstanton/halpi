@@ -12,25 +12,32 @@ type HapiError struct {
 }
 
 // Error returns the error string of a HapiError.
-func (hapiErr HapiError) Error() string {
-	return hapiErr.Err.Error()
+func (e HapiError) Error() string {
+	return e.Err.Error()
 }
 
 // GetStatusCode gets the status code for the HapiError.
-func (hapiErr HapiError) GetStatusCode() int {
-	return getStatusCode(hapiErr.ErrorType)
+func (e HapiError) GetStatusCode() int {
+	return getStatusCode(e.ErrorType)
 }
 
 // GetMessage gets the Message of the HapiError.
-func (hapiErr HapiError) GetMessage() string {
-	return hapiErr.Message
+func (e HapiError) GetMessage() string {
+	return e.Message
+}
+
+// SetMessage sets the Message and returns new error with new Message set.
+func (e HapiError) SetMessage(message string) HapiError {
+	e.Message = message
+
+	return e
 }
 
 // SetMessage will set the Message of a HapiError so that you
 // can return a detailed message for the client when responding.
 // If err is not of type HapiError, it will be converted to a NoType
 // HapiError and have the message set.
-func SetMessage(err error, message string) error {
+func SetMessage(err error, message string) HapiError {
 	hapiError := CastToHapiError(err)
 
 	hapiError.Message = message
@@ -41,7 +48,8 @@ func SetMessage(err error, message string) error {
 // CastToHapiError turns normal error into HapiError. If already a HapiError, this
 // will have no effect. If it is not, then this will return a NoType HapiError.
 func CastToHapiError(err error) HapiError {
-	hapiErr, ok := err.(HapiError)
+	var hapiError HapiError
+	ok := As(err, &hapiError)
 	if !ok {
 		return HapiError{
 			ErrorType: NoType,
@@ -49,5 +57,5 @@ func CastToHapiError(err error) HapiError {
 		}
 	}
 
-	return hapiErr
+	return hapiError
 }
