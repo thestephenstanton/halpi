@@ -1,6 +1,7 @@
 package hapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +13,7 @@ import (
 	"github.com/thestephenstanton/hapi/errors"
 )
 
-// This helps out with the two basic responders: Respond and RespondError.
+// helps with TestRespond
 func respondHandler(statusCode int, payload interface{}) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := Respond(w, statusCode, payload)
@@ -22,50 +23,27 @@ func respondHandler(statusCode int, payload interface{}) func(http.ResponseWrite
 	}
 }
 
-func respondErrorHandler(err error) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := RespondError(w, err)
-		if err != nil {
-			panic(err.Error())
-		}
-	}
-}
-
-// This helps with all the helper responders like RespondOK, RespondNotFound, etc...
-func helperResponderHandlerHelper(helperResponder func(http.ResponseWriter, interface{}) error, payload interface{}) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := helperResponder(w, payload)
-		if err != nil {
-			panic(err.Error())
-		}
-	}
-}
-
-func toPointer(s string) *string {
-	return &s
-}
-
 func TestRespond(t *testing.T) {
 	testCases := []struct {
 		desc               string
 		statusCode         int
 		payload            interface{}
 		expectedStatusCode int
-		expectedBody       string
+		expectedBody       []byte
 	}{
 		{
 			desc:               "basic response",
 			statusCode:         42,
 			payload:            "hello world",
 			expectedStatusCode: 42,
-			expectedBody:       `"hello world"`,
+			expectedBody:       []byte(`"hello world"`),
 		},
 		{
 			desc:               "nil payload",
 			statusCode:         741,
 			payload:            nil,
 			expectedStatusCode: 741,
-			expectedBody:       `null`,
+			expectedBody:       nil,
 		},
 		{
 			desc:       "custom payload",
@@ -76,7 +54,7 @@ func TestRespond(t *testing.T) {
 				Foo: "bar",
 			},
 			expectedStatusCode: 951,
-			expectedBody:       `{"foo":"bar"}`,
+			expectedBody:       json.RawMessage(`{"foo":"bar"}`),
 		},
 	}
 	for _, tc := range testCases {
@@ -95,11 +73,21 @@ func TestRespond(t *testing.T) {
 			handler.ServeHTTP(recorder, req)
 
 			actualStatusCode := recorder.Code
-			actualBody := recorder.Body.String()
+			actualBody := recorder.Body.Bytes()
 
 			assert.Equal(t, tc.expectedStatusCode, actualStatusCode)
 			assert.Equal(t, tc.expectedBody, actualBody)
 		})
+	}
+}
+
+// heals with TestRespondError
+func respondErrorHandler(err error) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := RespondError(w, err)
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 }
 
@@ -108,13 +96,17 @@ func TestRespondError(t *testing.T) {
 		desc               string
 		err                error
 		expectedStatusCode int
-		expectedBody       string
+		expectedBody       json.RawMessage
 	}{
 		{
 			desc:               "respond with hapi error",
 			err:                errors.Forbidden.New("some message you want your client to see"),
 			expectedStatusCode: http.StatusForbidden,
-			expectedBody:       `{"error":"some message you want your client to see"}`,
+			expectedBody: json.RawMessage(`
+			{
+				"error": "some message you want your client to see"
+			}
+			`),
 		},
 		{
 			desc: "custom set message",
@@ -123,13 +115,37 @@ func TestRespondError(t *testing.T) {
 				"some message you want your client to see",
 			),
 			expectedStatusCode: http.StatusForbidden,
-			expectedBody:       `{"error":"some message you want your client to see"}`,
+			expectedBody: json.RawMessage(`
+			{
+				"error": "some message you want your client to see"
+			}
+			`),
+		},
+		{
+			desc:               "another way to set message",
+			err:                errors.Forbidden.New("info you might not want client to see").SetMessage("some message you want your client to see"),
+			expectedStatusCode: http.StatusForbidden,
+			expectedBody: json.RawMessage(`
+			{
+				"error": "some message you want your client to see"
+			}
+			`),
 		},
 		{
 			desc:               "standard go error",
 			err:                goerrors.New("some go error"),
 			expectedStatusCode: Config.DefaultStatusCode,
-			expectedBody:       fmt.Sprintf(`{"error":"%s"}`, Config.DefaultErrorMessage),
+			expectedBody:       json.RawMessage(fmt.Sprintf(`{"error":"%s"}`, Config.DefaultErrorMessage)),
+		},
+		{
+			desc:               "set message on standard go errors",
+			err:                errors.SetMessage(goerrors.New("some go error"), "created by errors.SetMessage()"),
+			expectedStatusCode: Config.DefaultStatusCode,
+			expectedBody: json.RawMessage(`
+			{
+				"error": "created by errors.SetMessage()"
+			}
+			`),
 		},
 		{
 			desc: "custom error matching hapiError interface",
@@ -138,13 +154,27 @@ func TestRespondError(t *testing.T) {
 				message:    "custom error someone created",
 			},
 			expectedStatusCode: 666,
-			expectedBody:       `{"error":"custom error someone created"}`,
+			expectedBody: json.RawMessage(`
+			{
+				"error": "custom error someone created"
+			}
+			`),
 		},
 		{
 			desc:               "nil error",
 			err:                nil,
 			expectedStatusCode: Config.DefaultStatusCode,
-			expectedBody:       fmt.Sprintf(`{"error":"%s"}`, Config.DefaultErrorMessage),
+			expectedBody:       json.RawMessage(fmt.Sprintf(`{"error":"%s"}`, Config.DefaultErrorMessage)),
+		},
+		{
+			desc:               "hapi error wrapped with hapi error",
+			err:                errors.Unauthorized.Wrap(errors.ImATeapot.New("initial error"), "wrapping error"),
+			expectedStatusCode: http.StatusUnauthorized,
+			expectedBody: json.RawMessage(`
+			{
+				"error": "wrapping error"
+			}
+			`),
 		},
 	}
 	for _, tc := range testCases {
@@ -165,7 +195,7 @@ func TestRespondError(t *testing.T) {
 			actualBody := recorder.Body.String()
 
 			assert.Equal(t, tc.expectedStatusCode, actualStatusCode)
-			assert.Equal(t, tc.expectedBody, actualBody)
+			assert.JSONEq(t, string(tc.expectedBody), string(actualBody))
 		})
 	}
 }
@@ -185,6 +215,16 @@ func (c customHapiError) GetStatusCode() int {
 
 func (c customHapiError) GetMessage() string {
 	return c.message
+}
+
+// helps with TestRespondHelpers
+func helperResponderHandlerHelper(helperResponder func(http.ResponseWriter, interface{}) error, payload interface{}) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := helperResponder(w, payload)
+		if err != nil {
+			panic(err.Error())
+		}
+	}
 }
 
 func TestRespondHelpers(t *testing.T) {
@@ -229,6 +269,11 @@ func TestRespondHelpers(t *testing.T) {
 			expectedStatusCode: http.StatusTeapot,
 		},
 		{
+			desc:               "Test TooLarge",
+			respond:            RespondTooLarge,
+			expectedStatusCode: http.StatusRequestEntityTooLarge,
+		},
+		{
 			desc:               "Test InternalError",
 			respond:            RespondInternalError,
 			expectedStatusCode: http.StatusInternalServerError,
@@ -257,13 +302,14 @@ func TestRespondHelpers(t *testing.T) {
 	}
 }
 
-func TestChangeDefaults(t *testing.T) {
+func TestChangeConfigDefaults(t *testing.T) {
 	originalConfig := Config
 
 	testCases := []struct {
 		desc                   string
 		newDefaultStatusCode   int
 		newDefaultErrorMessage string
+		newReturnNulls         bool
 		newReturnRawError      bool
 		expectedStatusCode     int
 		expectedBody           string

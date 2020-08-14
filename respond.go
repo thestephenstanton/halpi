@@ -20,14 +20,22 @@ type errorResponse struct {
 
 // Respond will marshal and return the payload to the client with a given status code.
 func Respond(w http.ResponseWriter, statusCode int, payload interface{}) error {
+	w.Header().Set("Content-Type", "application-json")
+	w.WriteHeader(statusCode)
+
+	if payload == nil && !Config.ReturnNulls {
+		return nil
+	}
+
 	bytes, err := json.Marshal(payload)
 	if err != nil {
 		return errors.InternalServerError.Wrap(err, "failed to marshal payload")
 	}
 
-	w.Header().Set("Content-Type", "application-json")
-	w.WriteHeader(statusCode)
-	w.Write(bytes)
+	_, err = w.Write(bytes)
+	if err != nil {
+		return errors.InternalServerError.Wrap(err, "failed to write bytes")
+	}
 
 	return nil
 }
@@ -90,6 +98,11 @@ func RespondForbidden(w http.ResponseWriter, payload interface{}) error {
 // RespondNotFound will marshal the error payload and respond with a 404 status code.
 func RespondNotFound(w http.ResponseWriter, payload interface{}) error {
 	return Respond(w, http.StatusNotFound, payload)
+}
+
+// RespondTooLarge will marshal the error payload and respond with a 413 status code.
+func RespondTooLarge(w http.ResponseWriter, payload interface{}) error {
+	return Respond(w, http.StatusRequestEntityTooLarge, payload)
 }
 
 // RespondTeapot will marshal the error payload and respond with a 418 status code.
