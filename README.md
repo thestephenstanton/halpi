@@ -8,21 +8,21 @@ func (h handler) GetUsernameByID(w http.ResponseWriter, r *http.Request) {
 	username, err := h.repo.GetUsernameByID(userID)
 	if err != nil {
 		var errResponse errorResponse
-        var statusCode int
+        	var statusCode int
 
 		if errors.Is(sql.ErrNoRows, err) {
 			errResponse.Error = fmt.Sprintf("could not find username for user id '%s'", userID)
-			statusCode = http.StatusBadRequest
+			statusCode = http.StatusBadRequest	
 		} else {
 			errResponse.Error = "request couldn't be processed, please try again later"
 			statusCode = http.StatusInternalServerError
 		}
 
-        bytes, err := json.Marshal(errResponse)
-        if err != nil {
-            w.WriteHeader(http.StatusInternalServerError)
-            return
-        }
+		bytes, err := json.Marshal(errResponse)
+		if err != nil {
+		    w.WriteHeader(http.StatusInternalServerError)
+		    return
+		}
 
 		w.Header().Set("Content-Type", "application-json")
 		w.WriteHeader(statusCode)
@@ -32,11 +32,11 @@ func (h handler) GetUsernameByID(w http.ResponseWriter, r *http.Request) {
 
 	bytes, err := json.Marshal(usernameResponse{
 		Username: username,
-    })
-    if err != nil {
-        w.WriteHeader(http.StatusInternalServerError)
-        return
-    }
+    	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application-json")
 	w.WriteHeader(http.StatusOK)
