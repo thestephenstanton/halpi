@@ -26,6 +26,9 @@ const (
 	// NotFound 404 error
 	NotFound
 
+	// TooLarge 413 error
+	TooLarge
+
 	// ImATeapot 418 error
 	ImATeapot
 
@@ -34,7 +37,7 @@ const (
 )
 
 // Newf creates a new hapiError with formatted message
-func (errorType ErrorType) Newf(format string, args ...interface{}) error {
+func (errorType ErrorType) Newf(format string, args ...interface{}) HapiError {
 	message := fmt.Sprintf(format, args...)
 
 	return HapiError{
@@ -45,7 +48,7 @@ func (errorType ErrorType) Newf(format string, args ...interface{}) error {
 }
 
 // New creates a new hapiError
-func (errorType ErrorType) New(message string) error {
+func (errorType ErrorType) New(message string) HapiError {
 	return HapiError{
 		ErrorType: errorType,
 		Err:       errors.New(message),
@@ -54,7 +57,7 @@ func (errorType ErrorType) New(message string) error {
 }
 
 // Wrapf creates a new wrapped hapiError with formatted message
-func (errorType ErrorType) Wrapf(err error, format string, args ...interface{}) error {
+func (errorType ErrorType) Wrapf(err error, format string, args ...interface{}) HapiError {
 	message := fmt.Sprintf(format, args...)
 
 	return HapiError{
@@ -65,12 +68,12 @@ func (errorType ErrorType) Wrapf(err error, format string, args ...interface{}) 
 }
 
 // Wrap creates a new wrapped hapiError
-func (errorType ErrorType) Wrap(err error, message string) error {
+func (errorType ErrorType) Wrap(err error, message string) HapiError {
 	return errorType.Wrapf(err, message)
 }
 
 // Cast takes an error and turns it into a hapiError with a message
-func (errorType ErrorType) Cast(err error, message string) error {
+func (errorType ErrorType) Cast(err error, message string) HapiError {
 	return HapiError{
 		ErrorType: errorType,
 		Err:       err,
@@ -88,6 +91,8 @@ func getStatusCode(errorType ErrorType) int {
 		return http.StatusForbidden // 403
 	case NotFound:
 		return http.StatusNotFound // 404
+	case TooLarge:
+		return http.StatusRequestEntityTooLarge // 413
 	case ImATeapot:
 		return http.StatusTeapot // 418
 	case InternalServerError:
