@@ -13,11 +13,6 @@ type hapiError interface {
 	GetMessage() string
 }
 
-type errorResponse struct {
-	Error    string `json:"error"`
-	RawError string `json:"rawError,omitempty"`
-}
-
 // Respond will marshal and return the payload to the client with a given status code.
 func Respond(w http.ResponseWriter, statusCode int, payload interface{}) error {
 	w.Header().Set("Content-Type", "application-json")
@@ -64,9 +59,7 @@ func RespondErrorFallback(w http.ResponseWriter, err error, fallbackStatusCode i
 		message = http.StatusText(statusCode)
 	}
 
-	errorResponse := errorResponse{
-		Error: message,
-	}
+	errorResponse := NewErrorResponse(message)
 
 	if Config.ReturnRawError {
 		errorResponse.RawError = err.Error()
