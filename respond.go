@@ -25,7 +25,7 @@ func Respond(w http.ResponseWriter, statusCode int, payload interface{}) error {
 		return errors.InternalServerError.Wrap(err, "failed to marshal payload")
 	}
 
-	w.Header().Set("Content-Type", "application-json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	w.Write(bytes)
 
