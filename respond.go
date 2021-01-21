@@ -15,7 +15,7 @@ type hapiError interface {
 
 // Respond will marshal and return the payload to the client with a given status code.
 func Respond(w http.ResponseWriter, statusCode int, payload interface{}) error {
-	w.Header().Set("Content-Type", "application-json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
 	if payload == nil && !Config.ReturnNulls {
